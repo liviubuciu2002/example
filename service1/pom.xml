@@ -42,20 +42,12 @@
     </dependencies>
 
 
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>net.ju-n.maven.plugins</groupId>
-                <artifactId>checksum-maven-plugin</artifactId>
-                <version>1.2</version>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>artifacts</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-        </plugins>
-    </build>
+    <distributionManagement>
+        <repository>
+            <id>liviubuciu-myreponame</id>
+            <name>liviubuciu-myreponame</name>
+            <url>https://liviubuciu-724636013557.d.codeartifact.us-east-1.amazonaws.com/maven/myreponame/</url>
+        </repository>
+    </distributionManagement>
+
 </project>

@@ -11,7 +11,7 @@ public class Service1Controller {
     private final WebClient webClient;
 
     public Service1Controller(WebClient.Builder webClientBuilder) {
-        this.webClient = webClientBuilder.baseUrl("http://service2:8080").build();
+        this.webClient = WebClient.builder().build();
     }
 
     @GetMapping("/call-service2")
