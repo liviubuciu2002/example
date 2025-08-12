@@ -56,6 +56,22 @@ data "aws_availability_zones" "available" {
   state = "available"
 }
 
+# X-Ray Resources
+resource "aws_xray_group" "services_group" {
+  group_name        = "ServicesGroup"
+  filter_expression = "service(\"service1*\") OR service(\"service2*\")"
+}
+
+resource "aws_iam_role_policy_attachment" "xray_write_access_ecs" {
+  role       = aws_iam_role.ecs_task_execution_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess"
+}
+
+resource "aws_iam_role_policy_attachment" "xray_write_access_ec2" {
+  role       = aws_iam_role.service1.name
+  policy_arn = "arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess"
+}
+
 # Service2 - ECS with Cloud Map
 resource "aws_ecs_cluster" "service2_cluster" {
   name = "service2-cluster"
@@ -137,7 +153,29 @@ resource "aws_ecs_task_definition" "service2" {
         "awslogs-stream-prefix" = "ecs"
       }
     }
-  }])
+  },
+    {
+      name      = "xray-daemon"
+      image     = "amazon/aws-xray-daemon"
+      essential = true
+      cpu       = 32
+      memory    = 256
+      portMappings = [
+        {
+          containerPort = 2000
+          hostPort      = 2000
+          protocol      = "udp"
+        }
+      ]
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          "awslogs-group"         = aws_cloudwatch_log_group.service2.name
+          "awslogs-region"       = "us-east-1"
+          "awslogs-stream-prefix" = "xray"
+        }
+      }
+    }])
 }
 
 resource "aws_security_group" "service2" {
@@ -209,6 +247,12 @@ resource "aws_launch_template" "service1" {
               yum install -y docker
               systemctl enable docker
               systemctl start docker
+
+              # Install and start X-Ray daemon
+              curl https://s3.us-east-1.amazonaws.com/aws-xray-assets.us-east-1/xray-daemon/aws-xray-daemon-3.x.rpm -o /tmp/xray.rpm
+              yum install -y /tmp/xray.rpm
+              systemctl start xray
+
               docker run -d -p 8080:8080 --name service1 public.ecr.aws/t8o8w5f1/liviubuciunamespace/mydockerimages:latest
               EOF
   )
@@ -316,4 +360,8 @@ data "aws_ami" "ecs_optimized" {
 
 output "service2_discovery_name" {
   value = "${aws_service_discovery_service.service2.name}.${aws_service_discovery_private_dns_namespace.service2.name}"
+}
+
+output "xray_group_arn" {
+  value = aws_xray_group.services_group.arn
 }
