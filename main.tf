@@ -216,11 +216,28 @@ resource "aws_ecs_service" "service2" {
   }
 }
 
+resource "tls_private_key" "my_key" {
+  algorithm = "RSA"
+  rsa_bits  = 4096
+}
+
+resource "aws_key_pair" "generated_key" {
+  key_name   = "my-terraform-key"
+  public_key = tls_private_key.my_key.public_key_openssh
+}
+
+resource "local_file" "my_key_private" {
+  content  = tls_private_key.my_key.private_key_pem
+  filename = "my-terraform-key.pem"
+  file_permission = "0400"
+}
+
 # Service1 - Auto-scalable EC2 with Docker
 resource "aws_launch_template" "service1" {
   name_prefix   = "service1-"
   image_id      = data.aws_ami.ecs_optimized.id
   instance_type = "t3.micro"
+  key_name      = aws_key_pair.generated_key.key_name
   #key_name      = "your-key-pair"
 
   iam_instance_profile {
@@ -288,6 +305,13 @@ resource "aws_security_group" "service1" {
     to_port     = 8080
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"] # WARNING: This allows SSH from anywhere. See below for a more secure option.
   }
 
   egress {
