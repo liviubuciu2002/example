@@ -215,13 +215,6 @@ resource "aws_ecs_service" "service2" {
   service_registries {
     registry_arn = aws_service_discovery_service.service2.arn
   }
-
-  # Add load balancer configuration if you want to access it externally
-  load_balancer {
-    target_group_arn = aws_lb_target_group.service2.arn
-    container_name   = "service2-container"
-    container_port   = 8080
-  }
 }
 
 resource "tls_private_key" "my_key" {
@@ -251,7 +244,7 @@ resource "aws_launch_template" "service1" {
   iam_instance_profile {
     name = aws_iam_instance_profile.service1.name
   }
-  
+
   block_device_mappings {
     device_name = "/dev/xvda"
 
@@ -300,41 +293,6 @@ resource "aws_autoscaling_group" "service1" {
     key                 = "Name"
     value               = "service1-instance"
     propagate_at_launch = true
-  }
-}
-
-# Add these resources if you want proper load balancing
-resource "aws_lb" "service2" {
-  name               = "service2-lb"
-  internal           = false
-  load_balancer_type = "application"
-  security_groups    = [aws_security_group.service2.id]
-  subnets            = aws_subnet.public[*].id
-}
-
-resource "aws_lb_target_group" "service2" {
-  name        = "service2-tg"
-  port        = 8080
-  protocol    = "HTTP"
-  vpc_id      = aws_vpc.main.id
-  target_type = "ip"
-
-  health_check {
-    path                = "/"
-    interval            = 30
-    timeout             = 5
-    healthy_threshold   = 2
-    unhealthy_threshold = 2
-  }
-}
-
-resource "aws_lb_listener" "service2" {
-  load_balancer_arn = aws_lb.service2.arn
-  port              = "80"
-  protocol          = "HTTP"
-  default_action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.service2.arn
   }
 }
 
