@@ -1,8 +1,3 @@
 spring:
-  cloud:
-    aws:
-      cloudmap:
-        namespace: ecs.internal
-        service: service2
-    loadbalancer:
-      configurations: round-robin
+  main:
+    allow-bean-definition-overriding: true
